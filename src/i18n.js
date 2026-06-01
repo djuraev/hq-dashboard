@@ -1,0 +1,128 @@
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+
+const en = {
+  nav: {
+    overview: "Overview",
+    branches: "Global Branches",
+    students: "Students",
+    teachers: "Teachers",
+    courses: "Courses",
+    assessments: "Assessments",
+    content: "Content Analytics",
+    evaluations: "Evaluations",
+    reports: "Reports",
+    alerts: "Alerts",
+    settings: "Settings",
+  },
+  org: { name: "Edulime HQ", sub: "Sejong Korean Schools" },
+  topbar: {
+    search: "Search branches, students, courses…",
+    actionCenter: "HQ Action Center",
+    alertsToday: "{{count}} alerts need attention today.",
+    reviewNow: "Review now →",
+  },
+  common: {
+    export: "Export",
+    exportCsv: "Export CSV",
+    downloadReport: "Download Report",
+    generating: "Generating…",
+    apply: "Apply",
+    filters: "Filters",
+    region: "Region",
+    country: "Country",
+    date: "Date",
+    loadMore: "Load more",
+    results: "{{count}} results",
+    syncNow: "Sync now",
+    syncing: "Syncing…",
+    lastSynced: "Last synced",
+    favorites: "Favorites",
+    viewBranch: "View Branch",
+    contact: "Contact",
+    followUp: "Follow-up",
+  },
+  pages: {
+    overview: { title: "Executive Overview" },
+    branches: { title: "Global Branches" },
+    students: { title: "Student Analytics" },
+    teachers: { title: "Teacher Analytics" },
+    courses: { title: "Course Analytics" },
+    assessments: { title: "Assessment Analytics" },
+    content: { title: "Content & LMS Analytics" },
+    evaluations: { title: "Survey & Evaluation" },
+    reports: { title: "Reports" },
+    alerts: { title: "Alerts" },
+    settings: { title: "Settings" },
+  },
+};
+
+const ko = {
+  nav: {
+    overview: "개요",
+    branches: "글로벌 지점",
+    students: "학생",
+    teachers: "교사",
+    courses: "강좌",
+    assessments: "평가 시험",
+    content: "콘텐츠 분석",
+    evaluations: "설문/평가",
+    reports: "보고서",
+    alerts: "알림",
+    settings: "설정",
+  },
+  org: { name: "에듀라임 본부", sub: "세종 한국어학당" },
+  topbar: {
+    search: "지점, 학생, 강좌 검색…",
+    actionCenter: "본부 액션 센터",
+    alertsToday: "오늘 확인이 필요한 알림 {{count}}건.",
+    reviewNow: "지금 검토 →",
+  },
+  common: {
+    export: "내보내기",
+    exportCsv: "CSV 내보내기",
+    downloadReport: "보고서 다운로드",
+    generating: "생성 중…",
+    apply: "적용",
+    filters: "필터",
+    region: "지역",
+    country: "국가",
+    date: "기간",
+    loadMore: "더 보기",
+    results: "결과 {{count}}건",
+    syncNow: "지금 동기화",
+    syncing: "동기화 중…",
+    lastSynced: "최근 동기화",
+    favorites: "즐겨찾기",
+    viewBranch: "지점 보기",
+    contact: "연락하기",
+    followUp: "후속 조치",
+  },
+  pages: {
+    overview: { title: "경영 개요" },
+    branches: { title: "글로벌 지점" },
+    students: { title: "학생 분석" },
+    teachers: { title: "교사 분석" },
+    courses: { title: "강좌 분석" },
+    assessments: { title: "평가 분석" },
+    content: { title: "콘텐츠 및 LMS 분석" },
+    evaluations: { title: "설문 및 평가" },
+    reports: { title: "보고서" },
+    alerts: { title: "알림" },
+    settings: { title: "설정" },
+  },
+};
+
+export const LANGUAGES = [
+  { code: "en", label: "English" },
+  { code: "ko", label: "한국어" },
+];
+
+i18n.use(initReactI18next).init({
+  resources: { en: { translation: en }, ko: { translation: ko } },
+  lng: localStorage.getItem("edulime-lang") || "en",
+  fallbackLng: "en",
+  interpolation: { escapeValue: false },
+});
+
+export default i18n;

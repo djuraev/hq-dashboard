@@ -1,0 +1,8 @@
+services:
+  hq-dashboard:
+    build: .
+    image: edulime-hq-dashboard
+    container_name: hq-dashboard
+    ports:
+      - "4000:4000"
+    restart: unless-stopped

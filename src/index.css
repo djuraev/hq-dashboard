@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #f4f6fb;
+  color: #262c38;
+  font-family: "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dark body {
+  background: #0f131a;
+  color: #e1e5ec;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* thin scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd2dd;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9aa4b5;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #3a4151;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #4d5667;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-white shadow-card border border-ink-100;
+    @apply dark:bg-ink-800 dark:border-ink-700;
+  }
+  .card-hover {
+    @apply transition-shadow hover:shadow-cardhover;
+  }
+  .section-title {
+    @apply text-[15px] font-semibold text-ink-800 dark:text-ink-100;
+  }
+  .muted {
+    @apply text-ink-500 dark:text-ink-400;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+}
+
+/* Dark-mode utility remaps — applied automatically so existing page markup
+   (bg-white, text-ink-900, borders) inverts without touching every file. */
+.dark .bg-white { background-color: #262c38 !important; }
+.dark .bg-ink-50 { background-color: #1c222c !important; }
+.dark .bg-ink-100 { background-color: #2e3543 !important; }
+.dark .text-ink-900 { color: #f3f5f8 !important; }
+.dark .text-ink-800 { color: #e6e9ef !important; }
+.dark .text-ink-700 { color: #cbd2dd !important; }
+.dark .text-ink-600 { color: #aab3c2 !important; }
+.dark .border-ink-100 { border-color: #2e3543 !important; }
+.dark .border-ink-200 { border-color: #3a4151 !important; }
+.dark .border-ink-50 { border-color: #232a35 !important; }
+.dark .divide-ink-50 > * { border-color: #232a35 !important; }
+.dark .divide-ink-100 > * { border-color: #2e3543 !important; }
+/* keep brand-tinted and colored surfaces readable */
+.dark .bg-brand-50 { background-color: rgba(51, 102, 255, 0.15) !important; }
+.dark .hover\:bg-ink-50:hover { background-color: #2a3340 !important; }
