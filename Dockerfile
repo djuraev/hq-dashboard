@@ -2,8 +2,8 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
-# enable pnpm via corepack
-RUN corepack enable
+# pin pnpm to match the committed lockfile (avoids corepack policy mismatch)
+RUN corepack enable && corepack prepare pnpm@10.19.0 --activate
 
 # install deps (cache-friendly: lockfile first)
 COPY package.json pnpm-lock.yaml ./
