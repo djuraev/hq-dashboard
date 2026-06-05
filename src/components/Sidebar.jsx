@@ -1,20 +1,24 @@
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  LayoutDashboard, Globe2, GraduationCap, Users, BookOpen, ClipboardCheck,
-  FileBarChart, FileText, Bell, Settings, Star,
+  LayoutDashboard, Globe2, Map, GraduationCap, Users, BookOpen, ClipboardCheck,
+  FileBarChart, FileText, Bell, Settings, Star, Filter, Wallet, Sparkles,
 } from "lucide-react";
 
 const NAV = [
   { to: "/", key: "overview", icon: LayoutDashboard, end: true },
+  { to: "/regional", key: "regional", icon: Map },
   { to: "/branches", key: "branches", icon: Globe2 },
+  { to: "/funnel", key: "funnel", icon: Filter },
   { to: "/students", key: "students", icon: GraduationCap },
   { to: "/teachers", key: "teachers", icon: Users },
   { to: "/courses", key: "courses", icon: BookOpen },
   { to: "/assessments", key: "assessments", icon: ClipboardCheck },
   { to: "/content", key: "content", icon: FileBarChart },
   { to: "/evaluations", key: "evaluations", icon: Star },
+  { to: "/administration", key: "administration", icon: Wallet },
   { to: "/reports", key: "reports", icon: FileText },
+  { to: "/risk", key: "risk", icon: Sparkles },
   { to: "/alerts", key: "alerts", icon: Bell, badge: 4 },
   { to: "/settings", key: "settings", icon: Settings },
 ];

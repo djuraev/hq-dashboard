@@ -12,7 +12,7 @@ import AlertCard from "../components/AlertCard";
 import AiInsights from "../components/AiInsights";
 import {
   KPIS, TOP_BRANCHES, BOTTOM_BRANCHES, HEALTH_WEIGHTS, HEALTHIEST_10,
-  ATTENTION_10, HEALTH_BAND_COUNTS, ALERTS,
+  ATTENTION_10, HEALTH_BAND_COUNTS, ALERTS, GLOBAL_SUMMARY,
 } from "../data/metrics";
 import { BRANCHES } from "../data/branches";
 import { BAND_STYLE } from "../lib/format";
@@ -90,8 +90,22 @@ export default function Overview() {
         </div>
       )}
 
-      {/* Section 1: Executive KPIs */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-7">
+      {/* Sejong Global Control Tower summary banner */}
+      <div className="mb-5 rounded-2xl bg-gradient-to-r from-brand-700 to-brand-900 p-4 text-white sm:p-5">
+        <div className="text-sm font-semibold tracking-tight">Sejong Global Control Tower</div>
+        <p className="mt-1 text-sm text-brand-100">
+          {GLOBAL_SUMMARY.operating} of {GLOBAL_SUMMARY.total} Sejong Institutes operating normally · {GLOBAL_SUMMARY.risk} at operational risk
+        </p>
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+          <span><b className="tabular-nums">{GLOBAL_SUMMARY.total}</b> <span className="text-brand-200">Institutes</span></span>
+          <span><b className="tabular-nums">{GLOBAL_SUMMARY.countries}</b> <span className="text-brand-200">Countries</span></span>
+          <span><b className="tabular-nums">{GLOBAL_SUMMARY.learners.toLocaleString()}</b> <span className="text-brand-200">Learners</span></span>
+          <span><b className="tabular-nums">{GLOBAL_SUMMARY.completion}%</b> <span className="text-brand-200">Completion</span></span>
+        </div>
+      </div>
+
+      {/* Section 1: Global Overview KPIs */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
         {kpis.map((k) => (
           <KpiCard key={k.key} kpi={k} />
         ))}

@@ -1,4 +1,4 @@
-import { rand, randInt, rng } from "./seed";
+import { rand, randInt } from "./seed";
 import { BRANCHES, TOTAL_BRANCHES, ACTIVE_BRANCHES } from "./branches";
 import { COUNTRIES } from "./countries";
 
@@ -8,19 +8,36 @@ const avg = (arr, f) => Math.round(sum(arr, f) / arr.length);
 const activeStudents = sum(BRANCHES, (b) => b.students);
 const activeTeachers = sum(BRANCHES, (b) => b.teachers);
 
-// ---- Executive KPIs (Section 1) ----
+// Operational-risk = active branches whose health band is critical/attention-low.
+const RISK_BRANCHES = BRANCHES.filter((b) => b.band === "critical").length;
+const OPERATING_BRANCHES = ACTIVE_BRANCHES;
+
+// ---- Global Overview KPIs (Section 1 — per HQ spec) ----
+// 8 headline cards: 운영 학당 / 등록 수강생 / 활성 학습자 / 개설 강좌 /
+// 평균 출석률 / 평균 수료율 / 이탈 위험 학생 / 운영 리스크 학당.
 export const KPIS = [
-  { key: "branches", label: "Total Branches", value: TOTAL_BRANCHES, format: "int", icon: "Building2", change: 1.6, trend: "up", prev: "246" },
-  { key: "active", label: "Active Branches", value: ACTIVE_BRANCHES, format: "int", icon: "CheckCircle2", change: 0.8, trend: "up", prev: "241" },
-  { key: "students", label: "Active Students", value: 52341, format: "int", icon: "GraduationCap", change: 4.3, trend: "up", prev: "50,180" },
-  { key: "teachers", label: "Active Teachers", value: 1820, format: "int", icon: "Users", change: 2.1, trend: "up", prev: "1,782" },
-  { key: "attendance", label: "Monthly Attendance", value: 91, format: "pct", icon: "CalendarCheck", change: -1.2, trend: "down", prev: "92.2%" },
-  { key: "lms", label: "LMS Adoption Rate", value: 87, format: "pct", icon: "MonitorSmartphone", change: 3.5, trend: "up", prev: "84%" },
-  { key: "completion", label: "Course Completion", value: 83, format: "pct", icon: "Award", change: 1.1, trend: "up", prev: "82%" },
+  { key: "operating", label: "Operating Institutes", labelKo: "운영 학당 수", value: OPERATING_BRANCHES, format: "int", icon: "Building2", change: 0.8, trend: "up", prev: `${TOTAL_BRANCHES} total` },
+  { key: "students", label: "Enrolled Learners", labelKo: "등록 수강생 수", value: 128450, format: "int", icon: "GraduationCap", change: 18.5, trend: "up", prev: "108,400" },
+  { key: "active", label: "Active Learners (30d)", labelKo: "활성 학습자 수", value: 96320, format: "int", icon: "Activity", change: 6.4, trend: "up", prev: "90,510" },
+  { key: "courses", label: "Open Courses", labelKo: "개설 강좌 수", value: 4820, format: "int", icon: "BookOpen", change: 3.2, trend: "up", prev: "4,670" },
+  { key: "attendance", label: "Avg Attendance", labelKo: "평균 출석률", value: 89, format: "pct", icon: "CalendarCheck", change: -1.2, trend: "down", prev: "90.4%" },
+  { key: "completion", label: "Avg Completion", labelKo: "평균 수료율", value: 81, format: "pct", icon: "Award", change: 1.1, trend: "up", prev: "80%" },
+  { key: "dropoutRisk", label: "Dropout-Risk Learners", labelKo: "중도 이탈 위험 학생 수", value: 3140, format: "int", icon: "UserMinus", change: 4.8, trend: "down", prev: "2,990" },
+  { key: "riskBranches", label: "At-Risk Institutes", labelKo: "운영 리스크 학당 수", value: RISK_BRANCHES, format: "int", icon: "AlertTriangle", change: 0, trend: "down", prev: `${OPERATING_BRANCHES} operating` },
 ];
 
+// Headline summary line for Global Overview.
+export const GLOBAL_SUMMARY = {
+  total: TOTAL_BRANCHES,
+  operating: OPERATING_BRANCHES,
+  risk: RISK_BRANCHES,
+  learners: 128450,
+  countries: COUNTRIES.length,
+  completion: 81,
+};
+
 // scale derived totals to match headline KPIs so pages stay coherent
-export const SCALE_STUDENTS = 52341 / activeStudents;
+export const SCALE_STUDENTS = 128450 / activeStudents;
 export const SCALE_TEACHERS = 1820 / activeTeachers;
 
 const MONTHS = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun"];
@@ -373,5 +390,231 @@ export function branchDevices(branch) {
     { name: "Web", value: 100 - mobile },
   ];
 }
+
+// =====================================================================
+//  HQ Spec additions — Funnel, Demand, Regional, Administration, Risk
+// =====================================================================
+
+// ---- Enrollment Funnel (Learner & Enrollment Analytics) ----
+// K-content interest → … → re-enrollment. counts cascade off conversion %.
+export const FUNNEL_STEPS = (() => {
+  const base = 1_240_000; // K-content interest reach
+  const conv = [
+    { key: "interest", label: "K-Content Interest", labelKo: "K-콘텐츠 관심 유입", pct: 100 },
+    { key: "signup", label: "Sign-up", labelKo: "회원가입", pct: 18 },
+    { key: "leveltest", label: "Free Level Test", labelKo: "무료 레벨 테스트", pct: 42 },
+    { key: "consult", label: "Consultation", labelKo: "상담 신청", pct: 35 },
+    { key: "enroll", label: "Enrollment", labelKo: "수강 신청", pct: 68 },
+    { key: "payment", label: "Payment Confirmed", labelKo: "결제·등록 확정", pct: 88 },
+    { key: "attend", label: "Class Participation", labelKo: "수업 참여", pct: 94 },
+    { key: "complete", label: "Completion", labelKo: "수료", pct: 82 },
+    { key: "reenroll", label: "Re-enrollment", labelKo: "재등록", pct: 54 },
+  ];
+  let count = base;
+  return conv.map((s, i) => {
+    if (i > 0) count = Math.round(count * (s.pct / 100));
+    return { ...s, count, drop: i === 0 ? 0 : 100 - s.pct };
+  });
+})();
+
+// ---- Country demand analysis ----
+export const COUNTRY_DEMAND = STUDENTS_BY_COUNTRY.slice(0, 10).map((c) => {
+  const capacity = c.students + randInt(80, 900);
+  const applied = Math.round(capacity * rand(0.74, 1.18));
+  const waitlist = Math.max(0, applied - capacity);
+  return {
+    country: c.country,
+    code: c.code,
+    signups: Math.round(c.students * rand(1.4, 2.6)),
+    levelTests: Math.round(c.students * rand(0.9, 1.5)),
+    enrollments: c.students,
+    consultBacklog: randInt(20, 340),
+    capacity,
+    applied,
+    fillRate: Math.min(140, Math.round((applied / capacity) * 100)),
+    waitlist,
+    kContentShare: randInt(28, 72),
+  };
+}).sort((a, b) => b.waitlist - a.waitlist);
+
+// ---- Regional comparison (Asia / Europe / Americas / MEA / CIS) ----
+const REGION_GROUPS = {
+  "Asia": ["East Asia", "Southeast Asia", "South Asia"],
+  "CIS": ["Central Asia"],
+  "Europe": ["Europe"],
+  "Americas": ["North America", "South America"],
+  "MEA": ["Middle East & Africa"],
+  "Oceania": ["Oceania"],
+};
+export const REGIONAL = Object.entries(REGION_GROUPS).map(([region, subs]) => {
+  const bs = BRANCHES.filter((b) => subs.includes(b.region));
+  if (!bs.length) return null;
+  const students = Math.round(sum(bs, (b) => b.students) * SCALE_STUDENTS);
+  return {
+    region,
+    branches: bs.length,
+    students,
+    attendance: avg(bs, (b) => b.attendance),
+    completion: avg(bs, (b) => b.completion),
+    reEnrollment: randInt(46, 64),
+    growth: +rand(4, 33).toFixed(1),
+    kContentShare: randInt(24, 68),
+    critical: bs.filter((b) => b.band === "critical").length,
+  };
+}).filter(Boolean).sort((a, b) => b.students - a.students);
+
+// ---- Institute Scorecard fields (Regional & Institute Status) ----
+// derived per-branch on demand to keep payload small.
+export function instituteScorecard(branch) {
+  return {
+    status: branch.band,
+    enrolled: branch.students,
+    growth: branch.studentGrowth,
+    attendance: branch.attendance,
+    completion: branch.completion,
+    reEnrollment: Math.round(rand(42, 68)),
+    teacherFillRate: Math.round(rand(72, 100)),
+    reportStatus: pick3(branch.id),
+    dataReliability: Math.round(rand(68, 99)),
+  };
+}
+function pick3(id) {
+  const n = id.charCodeAt(id.length - 1) % 10;
+  return n < 7 ? "submitted" : n < 9 ? "delayed" : "missing";
+}
+
+// ---- Learning Performance KPIs (Learning Performance Analytics) ----
+export const PERFORMANCE_KPIS = [
+  { key: "attendance", label: "Avg Attendance", labelKo: "평균 출석률", value: 89, format: "pct" },
+  { key: "assignment", label: "Assignment Submission", labelKo: "과제 제출률", value: 76, format: "pct" },
+  { key: "quiz", label: "Quiz / Exam Participation", labelKo: "퀴즈·시험 응시율", value: 71, format: "pct" },
+  { key: "achievement", label: "Avg Achievement", labelKo: "평균 성취도", value: 74, format: "pct" },
+  { key: "completion", label: "Completion Rate", labelKo: "수료율", value: 81, format: "pct" },
+  { key: "dropout", label: "Dropout Rate", labelKo: "중도 이탈률", value: 11, format: "pct" },
+  { key: "reEnroll", label: "Re-enrollment", labelKo: "재등록률", value: 54, format: "pct" },
+  { key: "studyTime", label: "Avg Study Time", labelKo: "평균 학습 시간", value: "42m/day", format: "raw" },
+];
+
+// Country performance comparison (achievement vs re-enrollment).
+export const PERFORMANCE_BY_COUNTRY = STUDENTS_BY_COUNTRY.slice(0, 8).map((c) => ({
+  country: c.country,
+  attendance: randInt(72, 95),
+  completion: randInt(62, 92),
+  reEnrollment: randInt(38, 66),
+}));
+
+// Course-level performance (세종한국어 1A / 1B / 2A …).
+export const COURSE_PERFORMANCE = [
+  "세종한국어 1A", "세종한국어 1B", "세종한국어 2A", "세종한국어 2B",
+  "세종한국어 3A", "TOPIK I", "TOPIK II", "Business Korean",
+].map((name) => ({
+  name,
+  attendance: randInt(74, 95),
+  completion: randInt(60, 92),
+  reEnrollment: randInt(40, 64),
+  dropout: randInt(6, 22),
+}));
+
+// ---- Administration & Financial Status ----
+export const ADMIN_METRICS = {
+  reportSubmission: 87,   // 월간 보고서 제출률
+  delayedInstitutes: 18,  // 보고 지연 학당
+  pendingApprovals: 42,   // 승인 대기 건수
+  evidenceSubmission: 79, // 증빙자료 제출률
+  noticeRead: 91,         // 공지 확인률
+  avgRequestHandling: "2.4d", // 요청 처리 시간
+};
+
+export const REPORT_SUBMISSION_TREND = MONTHS.map((m) => ({
+  month: m,
+  onTime: randInt(70, 92),
+  delayed: randInt(6, 22),
+  missing: randInt(2, 10),
+}));
+
+export const PENDING_APPROVALS = [
+  { id: "AP-301", type: "Budget", labelKo: "예산", institute: "Tashkent Sejong", requested: "₩ 12,400,000", age: 3, priority: "high" },
+  { id: "AP-302", type: "Event", labelKo: "행사", institute: "Hanoi Sejong", requested: "K-Culture Day", age: 1, priority: "medium" },
+  { id: "AP-303", type: "Change", labelKo: "변경", institute: "Almaty Sejong", requested: "Schedule revision", age: 6, priority: "high" },
+  { id: "AP-304", type: "Budget", labelKo: "예산", institute: "Jakarta Sejong", requested: "₩ 8,900,000", age: 2, priority: "low" },
+  { id: "AP-305", type: "Document", labelKo: "문서", institute: "Cairo Sejong", requested: "Contract renewal", age: 9, priority: "high" },
+  { id: "AP-306", type: "Event", labelKo: "행사", institute: "Sao Paulo Sejong", requested: "Speech contest", age: 4, priority: "medium" },
+];
+
+// Budget execution — 배정/집행/정산 per category (₩ million).
+export const BUDGET_CATEGORIES = [
+  { category: "Instructor Pay", labelKo: "강사료", allocated: 4200, executed: 3680 },
+  { category: "Materials", labelKo: "교재", allocated: 1100, executed: 1020 },
+  { category: "Events", labelKo: "행사", allocated: 860, executed: 540 },
+  { category: "Operations", labelKo: "운영비", allocated: 1500, executed: 1390 },
+  { category: "Marketing", labelKo: "홍보", allocated: 720, executed: 690 },
+].map((c) => ({
+  ...c,
+  rate: Math.round((c.executed / c.allocated) * 100),
+  remaining: c.allocated - c.executed,
+}));
+
+export const BUDGET_SUMMARY = (() => {
+  const allocated = sum(BUDGET_CATEGORIES, (c) => c.allocated);
+  const executed = sum(BUDGET_CATEGORIES, (c) => c.executed);
+  return {
+    allocated, executed,
+    rate: Math.round((executed / allocated) * 100),
+    remaining: allocated - executed,
+    settlementRate: 73, // 정산 완료율
+    overrunRisk: 4,     // 초과 집행 위험 학당
+  };
+})();
+
+// Institutes flagged for budget over/under-execution.
+export const BUDGET_FLAGS = BRANCHES.slice(0, 60)
+  .map((b) => ({ id: b.id, name: b.name, country: b.country, rate: Math.round(rand(38, 102)) }))
+  .filter((x) => x.rate > 92 || x.rate < 55)
+  .slice(0, 8)
+  .sort((a, b) => b.rate - a.rate);
+
+// ---- Risk, Alert & AI Insight ----
+export const RISK_TYPES = [
+  { key: "attendance", label: "Attendance Decline", labelKo: "출석률 하락", rule: "4-wk attendance down >15% vs prior", count: 14, severity: "warning" },
+  { key: "completion", label: "Low Completion", labelKo: "수료율 저하", rule: "20%+ below same-course average", count: 9, severity: "critical" },
+  { key: "dropout", label: "Rising Dropout", labelKo: "중도 이탈 증가", rule: "No-login + absence + missed work累積", count: 22, severity: "critical" },
+  { key: "report", label: "Report Delay", labelKo: "행정 보고 지연", rule: ">7 days past deadline", count: 18, severity: "warning" },
+  { key: "teacher", label: "Instructor Risk", labelKo: "강사 운영 리스크", rule: "Late attendance entry + feedback backlog", count: 7, severity: "warning" },
+  { key: "complaint", label: "Learner Complaints", labelKo: "학습자 민원 증가", rule: "Q&A / complaint keyword spike", count: 5, severity: "warning" },
+  { key: "budget", label: "Budget Anomaly", labelKo: "예산 집행 이상", rule: "Category spike or large under-execution", count: 4, severity: "warning" },
+  { key: "data", label: "Data Quality", labelKo: "데이터 품질 저하", rule: "Attendance/grade/report data gaps rising", count: 11, severity: "info" },
+];
+
+// AI narrative insights (full-sentence summaries per spec).
+export const AI_NARRATIVES = [
+  { tone: "down", text: "Over the last 4 weeks, attendance in Beginner 1A across Central Asia fell 8.5% on average. Namangan, Bishkek and Almaty also show declining assignment submission — learning continuity needs attention." },
+  { tone: "alert", text: "Europe's new sign-ups are rising but consultation conversion is low. Improving the post-level-test consultation booking message is recommended." },
+  { tone: "up", text: "CIS institutes have smaller cohorts but the highest completion and re-enrollment rates — strong long-term learning potential." },
+  { tone: "down", text: "Southeast Asia shows high new enrollment yet weak re-enrollment, signalling retention rather than acquisition as the priority." },
+];
+
+// HQ recommendations + today's action list.
+export const RECOMMENDATIONS = [
+  { id: "R1", kind: "course", icon: "BookOpen", title: "Open additional Beginner 1A class — Tashkent", detail: "Waitlist 312, fill rate 138%. Demand supports 2 new sections.", impact: "high" },
+  { id: "R2", kind: "teacher", icon: "Users", title: "Assign instructor support — Almaty", detail: "Feedback backlog 4.1 days, 2 unfilled positions.", impact: "high" },
+  { id: "R3", kind: "quality", icon: "Award", title: "Quality review — Bishkek 1A completion", detail: "Completion 21% below global course average.", impact: "medium" },
+  { id: "R4", kind: "ops", icon: "FileText", title: "Follow up report delay — Cairo Sejong", detail: "Monthly report 9 days overdue.", impact: "medium" },
+];
+
+export const HQ_ACTIONS = [
+  { id: "H1", status: "New", label: "Institute A monthly report 10 days late", action: "Auto-notify owner", labelKo: "A 학당 월간 보고서 10일 지연" },
+  { id: "H2", status: "Assigned", label: "Institute B attendance down 4 weeks straight", action: "Request root-cause review", labelKo: "B 학당 출석률 4주 연속 하락" },
+  { id: "H3", status: "In Progress", label: "Country C beginner waitlist over 300", action: "Review new section", labelKo: "C 국가 초급반 대기자 300명 초과" },
+  { id: "H4", status: "New", label: "Institute D budget execution over 95%", action: "Budget owner review", labelKo: "D 학당 예산 집행률 95% 초과" },
+  { id: "H5", status: "Resolved", label: "Course E completion 20% below global avg", action: "Quality check requested", labelKo: "E 과정 수료율 글로벌 평균 대비 20% 낮음" },
+];
+
+export const ACTION_STATUS_STYLE = {
+  New: "bg-bad/10 text-bad",
+  Assigned: "bg-warn/10 text-warn",
+  "In Progress": "bg-brand-50 text-brand-700",
+  Resolved: "bg-good/10 text-good",
+  Deferred: "bg-ink-100 text-ink-500",
+};
 
 export { MONTHS };

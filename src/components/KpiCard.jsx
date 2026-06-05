@@ -1,10 +1,13 @@
 import * as Icons from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Card, TrendIndicator } from "./ui";
 import { fmtMetric } from "../lib/format";
 import { useCountUp } from "../lib/useCountUp";
 
 export default function KpiCard({ kpi }) {
+  const { i18n } = useTranslation();
   const Icon = Icons[kpi.icon] ?? Icons.Activity;
+  const label = i18n.language === "ko" && kpi.labelKo ? kpi.labelKo : kpi.label;
   const animated = useCountUp(kpi.value, { duration: 1000 });
   return (
     <Card className="card-hover p-4 transition-transform duration-150 hover:-translate-y-0.5">
@@ -17,7 +20,7 @@ export default function KpiCard({ kpi }) {
       <div className="mt-3 text-2xl font-bold tracking-tight text-ink-900 tabular-nums">
         {fmtMetric(animated, kpi.format)}
       </div>
-      <div className="mt-0.5 text-[13px] font-medium muted">{kpi.label}</div>
+      <div className="mt-0.5 text-[13px] font-medium muted">{label}</div>
       <div className="mt-2 border-t border-ink-100 pt-2 text-xs muted">
         vs last month <span className="font-medium text-ink-700">{kpi.prev}</span>
       </div>

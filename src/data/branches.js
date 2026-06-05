@@ -57,10 +57,12 @@ export function healthBand(score) {
   return "critical";
 }
 
+// Sejong Institutes are overseas Korean-language centers — KR hosts only HQ.
+// Weights sum to 252 (the real worldwide Sejong Institute count).
 const COUNTRY_BRANCH_WEIGHT = {
-  KR: 60, CN: 24, JP: 20, UZ: 16, VN: 14, US: 12, ID: 10, IN: 9, RU: 8,
-  TH: 7, PH: 7, KZ: 6, MY: 5, TW: 5, MN: 4, GB: 4, DE: 4, AU: 3, FR: 3,
-  CA: 3, MX: 3, BR: 3, SG: 2, AR: 2, EG: 2, AE: 2, ZA: 1,
+  KR: 6, CN: 30, JP: 26, UZ: 20, VN: 18, US: 16, ID: 13, IN: 12, RU: 11,
+  TH: 10, PH: 9, KZ: 9, MY: 7, TW: 7, MN: 5, GB: 7, DE: 7, AU: 5, FR: 6,
+  CA: 5, MX: 4, BR: 5, SG: 3, AR: 3, EG: 3, AE: 3, ZA: 2,
 };
 
 const STREETS = ["Sejong-daero", "Gangnam-gu Ave", "Central Plaza", "University Rd", "Main St", "Hangang Blvd", "Education Park", "City Center Tower", "Riverside Ave", "Heritage Square"];
