@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ArrowUp, ArrowDown } from "lucide-react";
 import { PageHeader } from "../components/Layout";
-import { Card, SectionHeader, ChartCard, MetricStrip } from "../components/ui";
+import { Card, SectionHeader, ChartCard, MetricStrip, Tabs } from "../components/ui";
 import { Bars } from "../components/charts";
 import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, LabelList, ReferenceLine,
 } from "recharts";
 import { fmtInt } from "../lib/format";
@@ -18,28 +19,140 @@ const CONVERSION = FUNNEL_STEPS.slice(1).map((s) => ({
   label: s.label,
   labelKo: s.labelKo,
   pct: s.pct,
+  count: s.count,
+  drop: s.drop,
 }));
 const WORST_PCT = Math.min(...CONVERSION.map((s) => s.pct));
+const WORST_KEY = CONVERSION.find((s) => s.pct === WORST_PCT)?.key;
 const stepColor = (pct) => (pct >= 60 ? "#16a34a" : pct >= 35 ? "#d97706" : "#dc2626");
 
-// Line chart of step conversion %, so weak steps stand out at a glance
-// instead of being flattened by absolute-count bars.
-function ConversionLine({ ko }) {
-  const data = CONVERSION.map((s) => ({ name: ko ? s.labelKo : s.label, pct: s.pct }));
+// ── View 1: horizontal %-bars, color-graded by health ─────────────────
+function ConversionBars({ ko }) {
   return (
-    <ResponsiveContainer width="100%" height={260}>
-      <LineChart data={data} margin={{ top: 20, right: 16, left: -8, bottom: 4 }}>
+    <div className="space-y-2">
+      {CONVERSION.map((s) => {
+        const worst = s.key === WORST_KEY;
+        return (
+          <div key={s.key} className="flex items-center gap-3">
+            <div className="w-36 shrink-0 text-right text-xs font-medium text-ink-600">{ko ? s.labelKo : s.label}</div>
+            <div className="relative h-7 flex-1 overflow-hidden rounded-lg bg-ink-50 dark:bg-ink-800">
+              <div className="flex h-full items-center justify-end rounded-lg px-2 text-xs font-bold text-white transition-all"
+                style={{ width: `${Math.max(8, s.pct)}%`, background: stepColor(s.pct) }}>
+                {s.pct}%
+              </div>
+            </div>
+            <div className="w-24 shrink-0 text-right text-[11px] tabular-nums muted">{fmtInt(s.count)}{worst && <span className="ml-1 font-bold text-bad">◄ low</span>}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── View 2: %-bars + drop-off lost overlay ────────────────────────────
+function ConversionDrop({ ko }) {
+  return (
+    <div className="space-y-2">
+      {CONVERSION.map((s) => (
+        <div key={s.key} className="flex items-center gap-3">
+          <div className="w-36 shrink-0 text-right text-xs font-medium text-ink-600">{ko ? s.labelKo : s.label}</div>
+          <div className="relative h-7 flex-1 overflow-hidden rounded-lg bg-bad/10">
+            <div className="flex h-full items-center justify-end rounded-lg px-2 text-xs font-bold text-white"
+              style={{ width: `${Math.max(8, s.pct)}%`, background: stepColor(s.pct) }}>
+              {s.pct}%
+            </div>
+          </div>
+          <div className="w-24 shrink-0 text-right text-[11px] font-semibold tabular-nums text-bad">−{s.drop}% {ko ? "이탈" : "lost"}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── View 3: refined line — area fill + 50% threshold + colored dots ───
+function ConversionLine({ ko, height = 300 }) {
+  const data = CONVERSION.map((s) => ({ name: ko ? s.labelKo : s.label, pct: s.pct, count: s.count, drop: s.drop }));
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <AreaChart data={data} margin={{ top: 24, right: 16, left: -8, bottom: 8 }}>
+        <defs>
+          <linearGradient id="conv-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#3366ff" stopOpacity={0.18} />
+            <stop offset="95%" stopColor="#3366ff" stopOpacity={0} />
+          </linearGradient>
+        </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#eef0f4" vertical={false} />
-        <XAxis dataKey="name" tick={{ fill: "#9aa4b5", fontSize: 11 }} axisLine={false} tickLine={false} interval={0} angle={-18} textAnchor="end" height={56} />
+        <XAxis dataKey="name" tick={{ fill: "#9aa4b5", fontSize: 11 }} axisLine={false} tickLine={false} interval={0} angle={-18} textAnchor="end" height={64} />
         <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: "#9aa4b5", fontSize: 12 }} axisLine={false} tickLine={false} />
-        <RTooltip formatter={(v) => [`${v}%`, "Conversion"]} contentStyle={{ borderRadius: 12, border: "1px solid #e1e5ec", fontSize: 13 }} />
-        <ReferenceLine y={WORST_PCT} stroke="#dc2626" strokeDasharray="4 4" strokeOpacity={0.5} />
-        <Line type="monotone" dataKey="pct" stroke="#3366ff" strokeWidth={2.5}
-          dot={(p) => <circle key={p.key} cx={p.cx} cy={p.cy} r={4} fill={stepColor(p.payload.pct)} stroke="#fff" strokeWidth={1.5} />}>
-          <LabelList dataKey="pct" position="top" formatter={(v) => `${v}%`} style={{ fontSize: 11, fontWeight: 600, fill: "#475569" }} />
-        </Line>
-      </LineChart>
+        <RTooltip contentStyle={{ borderRadius: 12, border: "1px solid #e1e5ec", fontSize: 13 }}
+          formatter={(v, _n, p) => [`${v}% conversion · ${fmtInt(p.payload.count)} reached · -${p.payload.drop}% drop`, ko ? "단계" : "Step"]} />
+        <ReferenceLine y={50} stroke="#94a3b8" strokeDasharray="4 4" strokeOpacity={0.6}
+          label={{ value: "50%", position: "insideTopRight", fill: "#94a3b8", fontSize: 11 }} />
+        <Area type="monotone" dataKey="pct" stroke="#3366ff" strokeWidth={2.5} fill="url(#conv-fill)"
+          dot={(p) => <circle key={p.key} cx={p.cx} cy={p.cy} r={5} fill={stepColor(p.payload.pct)} stroke="#fff" strokeWidth={1.5} />}>
+          <LabelList dataKey="pct" position="top" formatter={(v) => `${v}%`} style={{ fontSize: 12, fontWeight: 700, fill: "#475569" }} />
+        </Area>
+      </AreaChart>
     </ResponsiveContainer>
+  );
+}
+
+// ── View 4: %-bar + momentum delta vs previous step ───────────────────
+function ConversionDelta({ ko }) {
+  return (
+    <div className="space-y-2">
+      {CONVERSION.map((s, i) => {
+        const prev = i > 0 ? CONVERSION[i - 1].pct : null;
+        const delta = prev == null ? null : s.pct - prev;
+        const up = delta != null && delta >= 0;
+        return (
+          <div key={s.key} className="flex items-center gap-3">
+            <div className="w-36 shrink-0 text-right text-xs font-medium text-ink-600">{ko ? s.labelKo : s.label}</div>
+            <div className="relative h-7 flex-1 overflow-hidden rounded-lg bg-ink-50 dark:bg-ink-800">
+              <div className="flex h-full items-center justify-end rounded-lg px-2 text-xs font-bold text-white"
+                style={{ width: `${Math.max(8, s.pct)}%`, background: stepColor(s.pct) }}>
+                {s.pct}%
+              </div>
+            </div>
+            <div className={`flex w-20 shrink-0 items-center justify-end gap-0.5 text-[11px] font-semibold tabular-nums ${delta == null ? "muted" : up ? "text-good" : "text-bad"}`}>
+              {delta == null ? "—" : (
+                <>{up ? <ArrowUp size={12} /> : <ArrowDown size={12} />}{up ? "+" : ""}{delta}</>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const CONV_VIEWS = [
+  { key: "bars", label: "% Bars" },
+  { key: "drop", label: "Drop-off" },
+  { key: "line", label: "Line" },
+  { key: "delta", label: "Momentum" },
+];
+
+function ConversionPanel({ ko }) {
+  const [view, setView] = useState("bars");
+  const subtitle = {
+    bars: ko ? "전환율(%) 막대 — 짧고 빨간 구간이 문제" : "Conversion % bars — short & red = problem step",
+    drop: ko ? "각 단계 이탈률(−%) 강조" : "Drop-off lost at each step (−%)",
+    line: ko ? "여정 전체 전환율 추이 (50% 기준선)" : "Conversion trend across journey (50% line)",
+    delta: ko ? "이전 단계 대비 모멘텀(↑/↓)" : "Momentum vs previous step (↑/↓)",
+  }[view];
+  return (
+    <>
+      <SectionHeader
+        title={ko ? "단계별 전환율" : "Step Conversion Rate"}
+        subtitle={subtitle}
+        action={<Tabs tabs={CONV_VIEWS} value={view} onChange={setView} />}
+      />
+      {view === "bars" && <ConversionBars ko={ko} />}
+      {view === "drop" && <ConversionDrop ko={ko} />}
+      {view === "line" && <ConversionLine ko={ko} height={320} />}
+      {view === "delta" && <ConversionDelta ko={ko} />}
+    </>
   );
 }
 
@@ -77,50 +190,10 @@ export default function EnrollmentFunnel() {
 
       <MetricStrip items={strip} />
 
-      <Card className="mt-6 p-4">
-        <SectionHeader
-          title={ko ? "단계별 전환율" : "Step Conversion Rate"}
-          subtitle={ko ? "수치(모수)가 아니라 전환율(%) 기준 — 낮은 구간이 문제 구간" : "Read on % conversion, not raw counts — the dips are where prospects are lost"}
-        />
-        <ConversionLine ko={ko} />
-      </Card>
-
       <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-3">
         <Card className="p-4 xl:col-span-2">
-          <SectionHeader
-            title={ko ? "학습자 유입 Funnel" : "Learner Acquisition Funnel"}
-            subtitle={ko ? "K-콘텐츠 관심 → 재등록까지 단계별 전환" : "K-content interest → re-enrollment, step conversion"}
-          />
-          <div className="space-y-1.5">
-            {FUNNEL_STEPS.map((s, i) => {
-              const widthPct = Math.max(6, (s.count / MAX) * 100);
-              return (
-                <div key={s.key} className="flex items-center gap-3">
-                  <div className="w-40 shrink-0 text-right text-xs font-medium text-ink-600">
-                    {ko ? s.labelKo : s.label}
-                  </div>
-                  <div className="relative h-9 flex-1 overflow-hidden rounded-lg bg-ink-50 dark:bg-ink-800">
-                    <div
-                      className="flex h-full items-center justify-end rounded-lg bg-gradient-to-r from-brand-500 to-brand-700 px-3 text-xs font-semibold text-white transition-all"
-                      style={{ width: `${widthPct}%` }}
-                    >
-                      {fmtInt(s.count)}
-                    </div>
-                  </div>
-                  <div className="w-14 shrink-0 text-right text-xs tabular-nums">
-                    {i === 0 ? (
-                      <span className="muted">—</span>
-                    ) : (
-                      <span className={s.pct >= 60 ? "text-good" : s.pct >= 35 ? "text-warn" : "text-bad"}>
-                        {s.pct}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <p className="mt-4 rounded-lg bg-ink-50 p-3 text-xs text-ink-600 dark:bg-ink-800">
+          <ConversionPanel ko={ko} />
+          <p className="mt-3 rounded-lg bg-ink-50 p-3 text-xs text-ink-600 dark:bg-ink-800">
             {ko
               ? "이 화면의 목적은 학생 수가 아니라 어디에서 이탈이 발생하는지 파악하는 것입니다."
               : "Purpose: not raw counts, but pinpointing where prospects drop off."}
