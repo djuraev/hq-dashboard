@@ -13,6 +13,7 @@ import Administration from "./pages/Administration";
 import RiskInsight from "./pages/RiskInsight";
 import Students from "./pages/Students";
 import Teachers from "./pages/Teachers";
+import TeachersAll from "./pages/TeachersAll";
 import Courses from "./pages/Courses";
 import Assessments from "./pages/Assessments";
 import Content from "./pages/Content";
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="risk" element={<RiskInsight />} />
           <Route path="students" element={<Students />} />
           <Route path="teachers" element={<Teachers />} />
+          <Route path="teachers/all" element={<TeachersAll />} />
           <Route path="courses" element={<Courses />} />
           <Route path="assessments" element={<Assessments />} />
           <Route path="content" element={<Content />} />

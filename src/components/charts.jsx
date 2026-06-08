@@ -73,29 +73,35 @@ export function LineTrend({ data, xKey, series, height = 260, domain }) {
   );
 }
 
-export function Bars({ data, xKey, series, height = 260, layout = "horizontal" }) {
+// `tickFormatter` formats axis ticks (e.g. add "%"); `colorFn(row)` overrides
+// per-bar fill (single-series only) so outliers can be highlighted.
+export function Bars({ data, xKey, series, height = 260, layout = "horizontal", tickFormatter, colorFn }) {
   const t = useChartTheme();
   const axis = { tick: { fill: t.tickFill, fontSize: 12 }, axisLine: false, tickLine: false };
   const vertical = layout === "vertical";
+  const valueAxis = tickFormatter ? { ...axis, tickFormatter } : axis;
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} layout={layout} margin={{ top: 8, right: 8, left: vertical ? 24 : -12, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={t.gridStroke} horizontal={!vertical} vertical={vertical} />
         {vertical ? (
           <>
-            <XAxis type="number" {...axis} />
+            <XAxis type="number" {...valueAxis} />
             <YAxis type="category" dataKey={xKey} {...axis} width={110} />
           </>
         ) : (
           <>
             <XAxis dataKey={xKey} {...axis} />
-            <YAxis {...axis} />
+            <YAxis {...valueAxis} />
           </>
         )}
         <Tooltip {...t.tooltip} cursor={{ fill: t.gridStroke, fillOpacity: 0.4 }} />
         {series.length > 1 && <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />}
         {series.map((s, i) => (
-          <Bar key={s.key} dataKey={s.key} name={s.name ?? s.key} fill={s.color ?? PALETTE[i]} radius={vertical ? [0, 6, 6, 0] : [6, 6, 0, 0]} maxBarSize={vertical ? 18 : 42} />
+          <Bar key={s.key} dataKey={s.key} name={s.name ?? s.key} fill={s.color ?? PALETTE[i]} radius={vertical ? [0, 6, 6, 0] : [6, 6, 0, 0]} maxBarSize={vertical ? 18 : 42}>
+            {colorFn && series.length === 1 &&
+              data.map((row, ri) => <Cell key={ri} fill={colorFn(row)} />)}
+          </Bar>
         ))}
       </BarChart>
     </ResponsiveContainer>

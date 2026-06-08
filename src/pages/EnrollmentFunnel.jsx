@@ -3,10 +3,45 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "../components/Layout";
 import { Card, SectionHeader, ChartCard, MetricStrip } from "../components/ui";
 import { Bars } from "../components/charts";
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as RTooltip, LabelList, ReferenceLine,
+} from "recharts";
 import { fmtInt } from "../lib/format";
 import { FUNNEL_STEPS, COUNTRY_DEMAND } from "../data/metrics";
 
 const MAX = FUNNEL_STEPS[0].count;
+
+// Step-to-step conversion %, excluding the 100% baseline interest step.
+const CONVERSION = FUNNEL_STEPS.slice(1).map((s) => ({
+  key: s.key,
+  label: s.label,
+  labelKo: s.labelKo,
+  pct: s.pct,
+}));
+const WORST_PCT = Math.min(...CONVERSION.map((s) => s.pct));
+const stepColor = (pct) => (pct >= 60 ? "#16a34a" : pct >= 35 ? "#d97706" : "#dc2626");
+
+// Line chart of step conversion %, so weak steps stand out at a glance
+// instead of being flattened by absolute-count bars.
+function ConversionLine({ ko }) {
+  const data = CONVERSION.map((s) => ({ name: ko ? s.labelKo : s.label, pct: s.pct }));
+  return (
+    <ResponsiveContainer width="100%" height={260}>
+      <LineChart data={data} margin={{ top: 20, right: 16, left: -8, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#eef0f4" vertical={false} />
+        <XAxis dataKey="name" tick={{ fill: "#9aa4b5", fontSize: 11 }} axisLine={false} tickLine={false} interval={0} angle={-18} textAnchor="end" height={56} />
+        <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: "#9aa4b5", fontSize: 12 }} axisLine={false} tickLine={false} />
+        <RTooltip formatter={(v) => [`${v}%`, "Conversion"]} contentStyle={{ borderRadius: 12, border: "1px solid #e1e5ec", fontSize: 13 }} />
+        <ReferenceLine y={WORST_PCT} stroke="#dc2626" strokeDasharray="4 4" strokeOpacity={0.5} />
+        <Line type="monotone" dataKey="pct" stroke="#3366ff" strokeWidth={2.5}
+          dot={(p) => <circle key={p.key} cx={p.cx} cy={p.cy} r={4} fill={stepColor(p.payload.pct)} stroke="#fff" strokeWidth={1.5} />}>
+          <LabelList dataKey="pct" position="top" formatter={(v) => `${v}%`} style={{ fontSize: 11, fontWeight: 600, fill: "#475569" }} />
+        </Line>
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
 
 export default function EnrollmentFunnel() {
   const { t, i18n } = useTranslation();
@@ -41,6 +76,14 @@ export default function EnrollmentFunnel() {
       </PageHeader>
 
       <MetricStrip items={strip} />
+
+      <Card className="mt-6 p-4">
+        <SectionHeader
+          title={ko ? "단계별 전환율" : "Step Conversion Rate"}
+          subtitle={ko ? "수치(모수)가 아니라 전환율(%) 기준 — 낮은 구간이 문제 구간" : "Read on % conversion, not raw counts — the dips are where prospects are lost"}
+        />
+        <ConversionLine ko={ko} />
+      </Card>
 
       <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-3">
         <Card className="p-4 xl:col-span-2">
@@ -86,14 +129,16 @@ export default function EnrollmentFunnel() {
 
         <ChartCard
           title={ko ? "정원 대비 신청률" : "Demand vs Capacity"}
-          subtitle={ko ? "대기자 상위 국가" : "Top waitlist countries"}
+          subtitle={ko ? "100% 초과(빨강)는 정원 초과 — 증설 검토 대상" : "Over 100% (red) means over capacity — candidates for expansion"}
         >
           <Bars
             data={COUNTRY_DEMAND.slice(0, 8).map((c) => ({ country: c.country, fillRate: c.fillRate }))}
             xKey="country"
-            series={[{ key: "fillRate", name: "Fill Rate %", color: "#d97706" }]}
+            series={[{ key: "fillRate", name: "Fill Rate %" }]}
             layout="vertical"
             height={300}
+            tickFormatter={(v) => `${v}%`}
+            colorFn={(row) => (row.fillRate > 100 ? "#dc2626" : "#d97706")}
           />
         </ChartCard>
       </div>

@@ -99,20 +99,28 @@ export const TEACHER_ACTIVITY_TREND = trendSeries(10800, 600, 180).map((d) => ({
 
 const TEACHER_FIRST = ["Min-seo", "Joon-ho", "Hye-jin", "Sang-woo", "Yu-na", "Tae-hyung", "Bo-ram", "Ji-sung", "Elena", "Marco", "Lan", "Aziza", "Chen", "Nadia", "Ken", "Priya"];
 const TEACHER_LAST = ["Kim", "Lee", "Park", "Choi", "Han", "Seo", "Oh", "Im", "Petrova", "Rossi", "Tran", "Karimova", "Wang", "Hassan"];
-const SUBJECTS = ["Grammar", "Conversation", "TOPIK Prep", "Writing", "Listening", "Business Korean", "Beginner Track"];
+export const SUBJECTS = ["Grammar", "Conversation", "TOPIK Prep", "Writing", "Listening", "Business Korean", "Beginner Track"];
+
+// Teaching credentials used for detailed search on the full roster page.
+export const CERTIFICATIONS = ["한국어교원 1급", "한국어교원 2급", "한국어교원 3급", "TOPIK Rater", "KIIP Certified"];
 
 function teacherName(i) {
   return `${TEACHER_FIRST[i % TEACHER_FIRST.length]} ${TEACHER_LAST[(i * 3) % TEACHER_LAST.length]}`;
 }
 
 // Rich teacher roster. graduates/dropouts/attendance + drillable KPIs.
+// Full HQ roster (not just the leaderboard) so the all-teachers page can search/filter.
 export const TEACHERS = BRANCHES.slice()
   .sort((a, b) => b.teacherEngagement - a.teacherEngagement)
-  .slice(0, 20)
+  .slice(0, 48)
   .map((b, i) => {
     const studentsTaught = randInt(40, 140);
     const graduates = Math.round(studentsTaught * rand(0.55, 0.92));
     const dropouts = Math.round(studentsTaught * rand(0.02, 0.14));
+    // ~12% of the roster is inactive (no recent teaching activity).
+    const active = ((i * 7 + 3) % 8) !== 0;
+    // 0–2 credentials per teacher, deterministic by index.
+    const certs = CERTIFICATIONS.filter((_, ci) => (i + ci) % 3 === 0);
     return {
       id: `T-${String(i + 1).padStart(3, "0")}`,
       rank: i + 1,
@@ -121,6 +129,9 @@ export const TEACHERS = BRANCHES.slice()
       country: b.country,
       subject: SUBJECTS[i % SUBJECTS.length],
       since: 2018 + (i % 7),
+      active,
+      status: active ? "active" : "inactive",
+      certifications: certs,
       classes: randInt(80, 220),
       graded: randInt(300, 900),
       engagement: b.teacherEngagement,
@@ -136,7 +147,10 @@ export const TEACHERS = BRANCHES.slice()
     };
   });
 
-export const TEACHER_RANKING = TEACHERS.slice(0, 10);
+// Leaderboard = active teachers ranked by engagement (re-ranked after filtering).
+export const TEACHER_RANKING = TEACHERS.filter((t) => t.active)
+  .slice(0, 10)
+  .map((t, i) => ({ ...t, rank: i + 1 }));
 
 export function getTeacher(id) {
   return TEACHERS.find((t) => t.id === id);
@@ -194,12 +208,18 @@ export const COURSES = COURSE_NAMES.map((name, i) => {
   const enrolled = randInt(1800, 9400);
   const completion = randInt(54, 96);
   const rating = +(rand(3.6, 4.9)).toFixed(1);
+  // Absolute graduate volume — the count behind the completion %.
+  const graduates = Math.round((enrolled * completion) / 100);
+  // Review responses — small samples make a high rating less reliable.
+  const reviews = randInt(8, 240);
   return {
     id: `C-${100 + i}`,
     name,
     enrolled,
     completion,
+    graduates,
     rating,
+    reviews,
     engagement: randInt(55, 95),
   };
 }).sort((a, b) => b.enrolled - a.enrolled);

@@ -85,6 +85,27 @@ export function ChartCard({ title, subtitle, children, className = "" }) {
   );
 }
 
+// Lightweight segmented tabs. `tabs`: [{ key, label }]. Controlled via value/onChange.
+export function Tabs({ tabs, value, onChange }) {
+  return (
+    <div className="inline-flex rounded-lg border border-ink-200 bg-ink-50 p-0.5 dark:border-ink-700 dark:bg-ink-800">
+      {tabs.map((tb) => (
+        <button
+          key={tb.key}
+          onClick={() => onChange(tb.key)}
+          className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+            value === tb.key
+              ? "bg-white text-brand-700 shadow-sm dark:bg-ink-900 dark:text-brand-300"
+              : "text-ink-500 hover:text-ink-800"
+          }`}
+        >
+          {tb.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function ProgressBar({ value, band }) {
   const color = band ? BAND_STYLE[band].dot : "bg-brand-500";
   return (
